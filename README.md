@@ -1,3 +1,5 @@
+# Connect-hex random heuristic
+
 This is a file for running random heurisitic, and testing strategies in connect-hex
 
 Feel free to modify the players in app.js

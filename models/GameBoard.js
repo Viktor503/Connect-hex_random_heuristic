@@ -1,53 +1,18 @@
 export let Hexagon_module;
 
 class GameBoard {
-  constructor(size, hexsize, material, use_gui) {
+  constructor(size, hexsize, material) {
     this.size = size;
     this.hexsize = hexsize;
     this.material = material;
     this.board = new Array(size);
-    this.use_gui = use_gui;
   }
 
   async GameBoard_init() {
-    if (this.use_gui) {
-      await import("./Hexagon.js").then((module) => (Hexagon_module = module));
-      let hexagonField = Hexagon_module.hexagonField;
-      let first_field_pos = {
-        x: 0,
-        y: (this.size - 1) * (1 / 2) * this.hexsize,
-        z: 0,
-      };
-      for (let i = 0; i < this.size; i++) {
-        if (i != 0) {
-          first_field_pos.x -= (7 / 8) * this.hexsize;
-          first_field_pos.y -= (1 / 2) * this.hexsize;
-          first_field_pos.z = 0;
-        }
-        this.board[i] = new Array(this.size);
-        for (let j = 0; j < this.size; j++) {
-          let field_pos = {
-            x: first_field_pos.x + (7 / 8) * this.hexsize * j,
-            y: first_field_pos.y - (1 / 2) * this.hexsize * j,
-            z: first_field_pos.z,
-          };
-          //print field_pos as string
-          this.board[i][j] = new hexagonField(
-            0,
-            this.hexsize,
-            this.material,
-            field_pos
-          );
-          this.board[i][j].createHexagon();
-          this.board[i][j].mesh.name = i + "," + j;
-        }
-      }
-    } else {
-      for (let i = 0; i < this.size; i++) {
-        this.board[i] = new Array(this.size);
-        for (let j = 0; j < this.size; j++) {
-          this.board[i][j] = 0;
-        }
+    for (let i = 0; i < this.size; i++) {
+      this.board[i] = new Array(this.size);
+      for (let j = 0; j < this.size; j++) {
+        this.board[i][j] = 0;
       }
     }
   }
@@ -83,11 +48,10 @@ class GameBoard {
     return player_fields;
   }
 
-  addToScene(scene) {
-    this.board.forEach((row) => {
-      row.forEach((field) => {
-        scene.add(field.mesh);
-      });
+  printBoard() {
+    let board = this.getBoardValues();
+    board.forEach((row) => {
+      console.log(row);
     });
   }
 
@@ -101,15 +65,22 @@ class GameBoard {
     let column_number = y - x + this.size;
     return column_number;
   }
-  getDiagonalElements(diagonal_value) {
-    let board = this.getBoardValues();
+  getDiagonalElements(name) {
+    let [x, y] = this.getCoordinatesFromName(name);
     let diagonal = [];
-    for (let i = 0; i < this.size; i++) {
-      for (let j = 0; j < this.size; j++) {
-        if (j - i + this.size == diagonal_value && board[i][j] == 0) {
-          diagonal.push([i, j]);
-        }
-      }
+    let column = y - x;
+    x = 0;
+    y = 0;
+    if (column > 0) {
+      y += column;
+    } else {
+      x -= column;
+    }
+    while (this.board[x][y] == 0) {
+      diagonal.push([x, y]);
+      x++;
+      y++;
+      if (x > this.size - 1 || y > this.size - 1) break;
     }
     return diagonal;
   }
@@ -120,10 +91,17 @@ class GameBoard {
     return diagonal[diagonal.length - 1];
   }
 
-  markField(diagonal_value, player) {
-    let field = this.getNextEmptyFieldInDiagonal(diagonal_value);
+  markField(name, player, hex_mode) {
+    let field;
+    if (hex_mode) {
+      let [x, y] = this.getCoordinatesFromName(name);
+      field = this.board[x][y] == 0 ? [x, y] : null;
+    } else {
+      field = this.getNextEmptyFieldInDiagonal(name);
+    }
     if (!field) return;
     this.board[field[0]][field[1]] = player == 1 ? 1 : -1;
+
     return true;
   }
 }

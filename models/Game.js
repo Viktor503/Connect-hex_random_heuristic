@@ -1,8 +1,9 @@
 import { Queue } from "./Queue.js";
 
 class Game {
-  constructor(gameBoard) {
+  constructor(gameBoard, misereMode = false) {
     this.gameBoard = gameBoard;
+    this.misereMode = misereMode;
     this.currentPlayer = 1;
     this.winner = null;
     this.verbose = false;
@@ -73,7 +74,11 @@ class Game {
     // console.log("Start edge found:", startEdgeFound);
     // console.log("End edge found:", endEdgeFound);
     if (startEdgeFound && endEdgeFound) {
-      this.winner = player;
+      if (this.misereMode) {
+        this.winner = player == 1 ? 2 : 1;
+      } else {
+        this.winner = player;
+      }
       // await this.gameBoard.flashFields.then(() => {
       //     console.log("Player " + player + " wins!");
       // });
@@ -86,32 +91,19 @@ class Game {
     }
   }
 
-  winCheck() {
-    let board = this.gameBoard.getBoardValues();
-    let boardstring = JSON.stringify(board);
-    boardstring = boardstring.replaceAll("],[", "]\n[");
+  winCheck(player = this.currentPlayer) {
+    let board = this.gameBoard;
 
-    let playerFields = this.gameBoard.getPlayerFields(this.currentPlayer);
-    if (this.verbose) {
-      console.log("Current player:", this.currentPlayer);
-    }
+    let playerFields = this.gameBoard.getPlayerFields(player);
     while (playerFields.length > 0) {
       let playerVisitedSetStrings = this.bfsToGetReachableFields(
         playerFields,
-        this.currentPlayer
+        player
       );
       let playerVisitedFields = Array.from(playerVisitedSetStrings).map(
         (field) => field.split(",").map((x) => parseInt(x))
       );
-      //   console.log("Visited by player strings:", playerVisitedSetStrings);
-      //   console.log("Visited by player fields:", playerVisitedFields);
-      let possible_winner = this.checkIfFieldsAreWinning(
-        playerVisitedFields,
-        this.currentPlayer
-      );
-      if (possible_winner) {
-        return possible_winner;
-      }
+      this.checkIfFieldsAreWinning(playerVisitedFields, player);
       playerFields = playerFields.filter(
         (field) => !playerVisitedSetStrings.has(field[0] + "," + field[1])
       );
@@ -122,18 +114,13 @@ class Game {
     this.currentPlayer = this.currentPlayer == 1 ? 2 : 1;
   }
 
-  markField(diagonal_value) {
-    if (this.winner) return false;
-    if (this.gameBoard.markField(diagonal_value, this.currentPlayer)) {
-      this.winCheck();
-      if (this.winner) return false;
-      this.switchPlayer();
-    } else {
-      if (this.verbose) {
-        console.log("Field already marked");
-      }
+  markField(name, hex_mode, switchPlayer = true, winCheck = true) {
+    if (this.winner) return;
+    if (this.gameBoard.markField(name, this.currentPlayer, hex_mode)) {
+      if (winCheck) this.winCheck();
+      if (switchPlayer) this.switchPlayer();
+      return true;
     }
-    return true;
   }
 }
 
